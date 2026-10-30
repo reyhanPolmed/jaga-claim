@@ -1,0 +1,16 @@
+ALTER TABLE "users" ADD CONSTRAINT "users_role_check" CHECK ("role" IN ('admin', 'reviewer'));
+ALTER TABLE "import_batches" ADD CONSTRAINT "import_batches_status_check" CHECK ("status" IN ('validating', 'ready', 'completed', 'failed'));
+ALTER TABLE "import_batches" ADD CONSTRAINT "import_batches_counts_check" CHECK ("total_count" >= 0 AND "imported_claim_count" >= 0 AND "imported_revision_count" >= 0 AND "duplicate_count" >= 0 AND "rejected_count" >= 0);
+ALTER TABLE "claims" ADD CONSTRAINT "claims_claim_key_check" CHECK ("claim_key" ~ '^CLM_[0-9a-f]{20}$');
+ALTER TABLE "claims" ADD CONSTRAINT "claims_participant_key_check" CHECK ("participant_key" ~ '^PST_[0-9a-f]{20}$');
+ALTER TABLE "claim_revisions" ADD CONSTRAINT "claim_revisions_number_check" CHECK ("revision_number" >= 1);
+ALTER TABLE "scoring_jobs" ADD CONSTRAINT "scoring_jobs_status_check" CHECK ("status" IN ('queued', 'processing', 'completed', 'failed', 'partial_failed'));
+ALTER TABLE "scoring_jobs" ADD CONSTRAINT "scoring_jobs_counts_check" CHECK ("total_count" >= 0 AND "completed_count" >= 0 AND "failed_count" >= 0 AND "completed_count" + "failed_count" <= "total_count");
+ALTER TABLE "scoring_job_items" ADD CONSTRAINT "scoring_job_items_status_check" CHECK ("status" IN ('queued', 'processing', 'completed', 'failed'));
+ALTER TABLE "scoring_job_items" ADD CONSTRAINT "scoring_job_items_attempt_check" CHECK ("attempt_number" >= 1);
+ALTER TABLE "predictions" ADD CONSTRAINT "predictions_risk_score_check" CHECK ("risk_score" >= 0 AND "risk_score" <= 1);
+ALTER TABLE "predictions" ADD CONSTRAINT "predictions_risk_band_check" CHECK ("risk_band" IN ('low', 'medium', 'high'));
+ALTER TABLE "predictions" ADD CONSTRAINT "predictions_source_check" CHECK ("source" IN ('mock', 'http', 'ml'));
+ALTER TABLE "risk_findings" ADD CONSTRAINT "risk_findings_reason_code_check" CHECK ("reason_code" IN ('COST_PEER_OUTLIER', 'LOS_PEER_OUTLIER', 'TEMPORAL_REPEAT', 'POSSIBLE_DUPLICATE', 'CODING_MISMATCH', 'DATA_QUALITY'));
+ALTER TABLE "reviews" ADD CONSTRAINT "reviews_action_check" CHECK ("action" IN ('confirm', 'dismiss', 'request_correction'));
+ALTER TABLE "reviews" ADD CONSTRAINT "reviews_notes_check" CHECK ("action" = 'confirm' OR LENGTH(BTRIM(COALESCE("notes", ''))) > 0);

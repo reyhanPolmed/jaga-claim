@@ -1,0 +1,66 @@
+# Dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# Testing & Coverage
+/coverage
+/playwright-report/
+/test-results/
+*.tsbuildinfo
+
+# Next.js build output
+/.next/
+/out/
+
+# Production
+/build
+/dist
+
+# Environment variables
+.env*
+*.env
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Large files & local sample datasets (per TASK.md JC-001 acceptance)
+*.pdf
+/dataset bpjs sample/
+/tmp/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Local documentation and AI coding-agent configuration (not published)
+*.[mM][dD]
+*.markdown
+/.codex/
+/.agents/
+/.claude/
+/.cursor/
+/.windsurf/
+.cursorrules
+.windsurfrules
+.aider*
+/Empat Engine Hybrid AI JAGA-CLAIM.png
+/mermaid-diagram*.png
+
+# Local datasets, model artifacts, and private credentials
+*.dta
+*.parquet
+*.jsonl
+*.joblib
+*.pkl
+*.pt
+*.pth
+*.onnx
+*.safetensors
+*.pem
+*.key
+*.pfx
+*.p12

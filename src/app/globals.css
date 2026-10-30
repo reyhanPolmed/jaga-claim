@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary-700: #2F3B3A;
+  --navy-900: #102A43;
+  --teal-700: #0F766E;
+  --teal-50: #F0FDFA;
+  --blue-50: #EFF6FF;
+  --slate-600: #475569;
+  --slate-200: #E2E8F0;
+  --surface: #FFFFFF;
+  --app-bg: #F8FAFC;
+}
+
+body {
+  background-color: var(--app-bg);
+  color: var(--navy-900);
+  font-family: var(--font-poppins), system-ui, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+/* Keep every font utility aligned with Poppins, including cached Tailwind utilities. */
+html,
+body,
+.font-sans,
+.font-mono,
+.font-serif {
+  font-family: var(--font-poppins), "Poppins", system-ui, sans-serif;
+}
+
+@layer base {
+  button, input, select, textarea, code, kbd, samp, pre {
+    font-family: inherit;
+  }
+}
+
+/* Minimum WCAG AA contrast for supporting text and compact brand marks. */
+.text-slate-400 {
+  color: #475569 !important;
+}
+
+aside .text-slate-400 {
+  color: #cbd5e1 !important;
+}
+
+.bg-teal-600 {
+  background-color: #0f766e !important;
+}

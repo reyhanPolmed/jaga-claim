@@ -1,0 +1,179 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String   @id @default(uuid()) @db.Uuid
+  displayName String   @map("display_name")
+  email       String   @unique
+  role        String // 'admin' | 'reviewer'
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  importBatches ImportBatch[]
+  scoringJobs   ScoringJob[]
+  reviews       Review[]
+
+  @@map("users")
+}
+
+model ImportBatch {
+  id                    String    @id @default(uuid()) @db.Uuid
+  importedBy            String    @map("imported_by") @db.Uuid
+  schemaVersion         String    @map("schema_version")
+  sourceName            String    @map("source_name")
+  fileChecksum          String    @map("file_checksum")
+  status                String // 'validating' | 'ready' | 'completed' | 'failed'
+  totalCount            Int       @default(0) @map("total_count")
+  importedClaimCount    Int       @default(0) @map("imported_claim_count")
+  importedRevisionCount Int       @default(0) @map("imported_revision_count")
+  duplicateCount        Int       @default(0) @map("duplicate_count")
+  rejectedCount         Int       @default(0) @map("rejected_count")
+  errors                Json?     @map("errors")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  finishedAt            DateTime? @map("finished_at")
+
+  user      User            @relation(fields: [importedBy], references: [id])
+  revisions ClaimRevision[]
+
+  @@map("import_batches")
+}
+
+model Claim {
+  id             String   @id @default(uuid()) @db.Uuid
+  claimKey       String   @unique @map("claim_key")
+  participantKey String   @map("participant_key")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at")
+
+  revisions       ClaimRevision[]
+  scoringJobItems ScoringJobItem[]
+  predictions     Prediction[]
+  reviews         Review[]
+
+  @@index([participantKey], name: "idx_claims_participant")
+  @@map("claims")
+}
+
+model ClaimRevision {
+  id               String   @id @default(uuid()) @db.Uuid
+  claimId          String   @map("claim_id") @db.Uuid
+  importBatchId    String?  @map("import_batch_id") @db.Uuid
+  revisionNumber   Int      @map("revision_number")
+  payloadChecksum  String   @map("payload_checksum")
+  claimPayload     Json     @map("claim_payload")
+  sourceSnapshotAt DateTime @map("source_snapshot_at")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  claim           Claim            @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  importBatch     ImportBatch?     @relation(fields: [importBatchId], references: [id])
+  scoringJobItems ScoringJobItem[]
+  predictions     Prediction[]
+
+  @@unique([claimId, revisionNumber], name: "uq_claim_revisions_number")
+  @@unique([claimId, payloadChecksum], name: "uq_claim_revisions_checksum")
+  @@index([claimId, revisionNumber(sort: Desc)], name: "idx_claim_revisions_latest")
+  @@map("claim_revisions")
+}
+
+model ScoringJob {
+  id             String    @id @default(uuid()) @db.Uuid
+  requestedBy    String    @map("requested_by") @db.Uuid
+  status         String // 'queued' | 'processing' | 'completed' | 'failed' | 'partial_failed'
+  totalCount     Int       @default(0) @map("total_count")
+  completedCount Int       @default(0) @map("completed_count")
+  failedCount    Int       @default(0) @map("failed_count")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  startedAt      DateTime? @map("started_at")
+  finishedAt     DateTime? @map("finished_at")
+
+  user  User             @relation(fields: [requestedBy], references: [id])
+  items ScoringJobItem[]
+
+  @@map("scoring_jobs")
+}
+
+model ScoringJobItem {
+  id               String    @id @default(uuid()) @db.Uuid
+  jobId            String    @map("job_id") @db.Uuid
+  claimId          String    @map("claim_id") @db.Uuid
+  claimRevisionId  String    @map("claim_revision_id") @db.Uuid
+  status           String // 'queued' | 'processing' | 'completed' | 'failed'
+  attemptNumber    Int       @default(1) @map("attempt_number")
+  errorCode        String?   @map("error_code")
+  errorMessageSafe String?   @map("error_message_safe")
+  startedAt        DateTime? @map("started_at")
+  finishedAt       DateTime? @map("finished_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  job        ScoringJob    @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  claim      Claim         @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  revision   ClaimRevision @relation(fields: [claimRevisionId], references: [id], onDelete: Cascade)
+  prediction Prediction?
+
+  @@unique([jobId, claimId, claimRevisionId], name: "uq_job_claim_revision")
+  @@index([jobId, status], name: "idx_job_items_job_status")
+  @@index([claimId, createdAt(sort: Desc)], name: "idx_job_items_claim_latest")
+  @@map("scoring_job_items")
+}
+
+model Prediction {
+  id               String   @id @default(uuid()) @db.Uuid
+  claimId          String   @map("claim_id") @db.Uuid
+  claimRevisionId  String   @map("claim_revision_id") @db.Uuid
+  scoringJobItemId String   @unique @map("scoring_job_item_id") @db.Uuid
+  riskScore        Decimal  @map("risk_score") @db.Decimal(5, 4)
+  riskBand         String   @map("risk_band") // 'low' | 'medium' | 'high'
+  evidence         Json     @default("[]") @map("evidence")
+  modelVersion     String   @map("model_version")
+  ruleVersion      String   @map("rule_version")
+  source           String   @map("source") // 'mock' | 'ml'
+  scoredAt         DateTime @map("scored_at")
+
+  claim          Claim          @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  revision       ClaimRevision  @relation(fields: [claimRevisionId], references: [id], onDelete: Cascade)
+  scoringJobItem ScoringJobItem @relation(fields: [scoringJobItemId], references: [id], onDelete: Cascade)
+  findings       RiskFinding[]
+  reviews        Review[]
+
+  @@index([claimId, scoredAt(sort: Desc), id(sort: Desc)], name: "idx_predictions_claim_latest")
+  @@index([claimRevisionId, scoredAt(sort: Desc)], name: "idx_predictions_revision")
+  @@map("predictions")
+}
+
+model RiskFinding {
+  id           String @id @default(uuid()) @db.Uuid
+  predictionId String @map("prediction_id") @db.Uuid
+  reasonCode   String @map("reason_code")
+  evidence     Json?  @map("evidence")
+
+  prediction Prediction @relation(fields: [predictionId], references: [id], onDelete: Cascade)
+
+  @@unique([predictionId, reasonCode], name: "uq_findings_prediction_code")
+  @@map("risk_findings")
+}
+
+model Review {
+  id                 String   @id @default(uuid()) @db.Uuid
+  claimId            String   @map("claim_id") @db.Uuid
+  predictionId       String   @map("prediction_id") @db.Uuid
+  reviewerId         String   @map("reviewer_id") @db.Uuid
+  supersedesReviewId String?  @map("supersedes_review_id") @db.Uuid
+  idempotencyKey     String   @unique @map("idempotency_key") @db.Uuid
+  action             String   @map("action") // 'confirm' | 'dismiss' | 'request_correction'
+  notes              String?  @map("notes")
+  reviewedAt         DateTime @default(now()) @map("reviewed_at")
+
+  claim            Claim      @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  prediction       Prediction @relation(fields: [predictionId], references: [id], onDelete: Cascade)
+  reviewer         User       @relation(fields: [reviewerId], references: [id])
+  supersedes       Review?    @relation("ReviewSupersedes", fields: [supersedesReviewId], references: [id])
+  supersededByList Review[]   @relation("ReviewSupersedes")
+
+  @@index([predictionId, reviewedAt(sort: Desc), id(sort: Desc)], name: "idx_reviews_prediction_latest")
+  @@map("reviews")
+}

@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: jaga_claim_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d jaga_claim_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/jaga_claim_ci?schema=public
+      AUTH_SECRET: ci-only-session-secret-at-least-32-characters
+      SCORING_PROVIDER: mock
+      ML_SERVICE_URL: http://127.0.0.1:8000
+      ML_SERVICE_TIMEOUT_MS: 1000
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npx prisma migrate deploy
+      - run: node scripts/seed.js
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: node scripts/run-isolated-tests.js tests/integration
+      - run: node scripts/run-isolated-tests.js tests/e2e
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-failure-artifacts
+          path: test-results/
+          retention-days: 7
