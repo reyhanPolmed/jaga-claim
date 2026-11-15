@@ -5,7 +5,7 @@ const buckets = new Map<string, { count: number; resetAt: number }>();
 export function requireSameOrigin(req: Request) {
   const origin = req.headers.get("origin");
   if (!origin) return;
-  const expected = new URL(req.url).origin;
+  const expected = new URL(process.env.APP_ORIGIN || req.url).origin;
   if (origin !== expected) throw new AuthError(403, "CSRF_ORIGIN_REJECTED", "Origin request tidak diizinkan");
 }
 

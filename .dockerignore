@@ -1,0 +1,29 @@
+# Allow only files needed to build the website. No local secrets or datasets.
+**
+!package.json
+!package-lock.json
+!next.config.mjs
+!next-env.d.ts
+!tsconfig.json
+!tailwind.config.ts
+!postcss.config.js
+!.eslintrc.json
+!logo jaga claim.png
+!src/
+!src/**
+!prisma/
+!prisma/**
+!scripts/
+!scripts/create-login-credentials.js
+!public/
+!public/**
+**/.env*
+**/*.env
+**/*.md
+**/*.pem
+**/*.key
+**/*.jsonl
+**/*.parquet
+**/*.dta
+**/*.joblib
+**/*.pkl

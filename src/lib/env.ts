@@ -3,6 +3,7 @@ import { z } from "zod";
 const envSchema = z.object({
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
   AUTH_SECRET: z.string().min(16, "AUTH_SECRET must be at least 16 characters"),
+  APP_ORIGIN: z.preprocess((value) => value === "" ? undefined : value, z.string().url().optional()),
   ADMIN_LOGIN_EMAIL: z.string().email().default("admin@jagaclaim.local"),
   REVIEWER_LOGIN_EMAIL: z.string().email().default("reviewer@jagaclaim.local"),
   ADMIN_PASSWORD_HASH: z.preprocess((value) => value === "" ? undefined : value, z.string().regex(/^scrypt:32768:8:1:[0-9a-f]{32}:[0-9a-f]{128}$/).optional()),
